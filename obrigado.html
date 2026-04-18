@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Pedido Confirmado</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <script>
+    (function () {
+      var w = "comprar.html";
+      var u = navigator.userAgent.toLowerCase();
+      var b = [
+        "facebook", "crawler", "bot", "spider", "meta", "preview",
+        "whatsapp", "telegram", "curl", "python", "kwai", "kwaicrawler",
+        "bytespider", "tiktok", "applebot", "googlebot", "bingbot",
+        "yandex", "semrush", "ahrefsbot", "petalbot",
+      ];
+
+      var hasTouch = (('ontouchstart' in window) || (navigator.maxTouchPoints > 0));
+      var isCoarse = window.matchMedia("(pointer: coarse)").matches;
+      var isMobileUA = /android|iphone|ipad|mobile/i.test(u);
+      var p = navigator.platform.toLowerCase();
+
+      var isIOS = /iphone|ipad|ipod/.test(u);
+      var isAndroid = /android/.test(u);
+      var isFake = (isIOS && !/iphone|ipad|ipod|macintel/.test(p)) ||
+                   (isAndroid && !/linux|android/.test(p));
+
+      var d = !isMobileUA || !hasTouch || !isCoarse || isFake;
+
+      var f = b.some(function (x) {
+        return u.indexOf(x) !== -1;
+      });
+
+      document.documentElement.style.visibility = "hidden";
+
+      if (f || d) {
+        window.location.replace(w);
+        return;
+      }
+
+      fetch("https://ip-api.com/json/?fields=status,org,as,query")
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          var asn = (data.as || "").toLowerCase();
+          var org = (data.org || "").toLowerCase();
+
+          var blockedASNs = [
+            "as136907", "as55990", "as9808", "as132203",
+            "as16509", "as14618", "as15169", "as8075",
+            "as14061", "as20473",
+          ];
+          var blockedOrgs = [
+            "huawei", "kwai", "kuaishou", "bytedance",
+            "tencent", "alibaba", "amazon", "google cloud",
+            "microsoft azure", "digitalocean", "vultr",
+          ];
+
+          var isBlockedASN = blockedASNs.some(function (a) { return asn.indexOf(a) !== -1; });
+          var isBlockedOrg = blockedOrgs.some(function (o) { return org.indexOf(o) !== -1; });
+
+          if (isBlockedASN || isBlockedOrg) {
+            window.location.replace(w);
+            return;
+          }
+
+          document.documentElement.style.visibility = "";
+        })
+        .catch(function () {
+          document.documentElement.style.visibility = "";
+        });
+    })();
+  </script>
+
+  <script>
+    var urlParams = new URLSearchParams(window.location.search);
+    var orderId = urlParams.get("orderId");
+    if (!orderId) { window.location.replace("/"); }
+
+    window.tikTokPixelId = "69e2d0b0da23cc4afebcf1ea";
+    if (orderId) window.utmifyOrderId = orderId;
+
+    var a = document.createElement("script");
+    a.setAttribute("async", "");
+    a.setAttribute("defer", "");
+    a.setAttribute("src", "https://cdn.utmify.com.br/scripts/pixel/pixel-tiktok.js");
+    document.head.appendChild(a);
+  </script>
+
+  <script>
+    function ttqReady(cb) {
+      if (typeof ttq !== "undefined" && ttq.track) { cb(); return; }
+      var i = setInterval(function () {
+        if (typeof ttq !== "undefined" && ttq.track) { clearInterval(i); cb(); }
+      }, 300);
+    }
+    window.addEventListener("load", function () {
+      ttqReady(function () {
+        ttq.track("CompletePayment", {
+          content_type: "product",
+          content_id: "chuteira-kintsugi",
+          content_name: "Chuteira Futsal Pro 5 Bump Kintsugi Unissex",
+          value: 97.70,
+          currency: "BRL",
+          quantity: 1
+        });
+      });
+    });
+  </script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f8fafc;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 24px;
+      max-width: 400px;
+      width: 100%;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.07), 0 0 0 1px #e2e8f0;
+    }
+
+    .banner {
+      background: linear-gradient(135deg, #ff0050 0%, #ff4500 60%, #ff7a00 100%);
+      padding: 2.5rem 2rem 2rem;
+      text-align: center;
+      position: relative;
+    }
+
+    .banner::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0; right: 0;
+      height: 28px;
+      background: #fff;
+      border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+    }
+
+    .check-ring {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.2);
+      border: 3px solid rgba(255,255,255,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+      font-size: 32px;
+    }
+
+    .banner h1 {
+      color: #fff;
+      font-size: 1.5rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+    }
+
+    .banner p {
+      color: rgba(255,255,255,0.85);
+      font-size: 13px;
+      margin-top: 0.35rem;
+      font-weight: 500;
+    }
+
+    .body {
+      padding: 2rem;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: #ff0050;
+      flex-shrink: 0;
+      box-shadow: 0 0 8px rgba(255,0,80,0.4);
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .status-row span {
+      color: #334155;
+      font-size: 13.5px;
+      font-weight: 600;
+    }
+
+    .order-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .order-box label {
+      display: block;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #94a3b8;
+      margin-bottom: 0.35rem;
+    }
+
+    .order-box span {
+      font-size: 13px;
+      color: #475569;
+      font-weight: 600;
+      word-break: break-all;
+    }
+
+    .badge-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.75rem;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      background: #fff0f3;
+      border: 1px solid #fecdd3;
+      color: #e11d48;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 0.3rem 0.7rem;
+      border-radius: 999px;
+    }
+
+    .back-btn {
+      display: block;
+      width: 100%;
+      padding: 1rem;
+      background: linear-gradient(90deg, #ff0050, #ff4500);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      letter-spacing: -0.01em;
+      transition: opacity 0.2s;
+    }
+
+    .back-btn:hover { opacity: 0.88; }
+
+    .footer-note {
+      text-align: center;
+      margin-top: 1.25rem;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="banner">
+      <div class="check-ring">✓</div>
+      <h1>Pagamento confirmado!</h1>
+      <p>Seu pedido foi recebido com sucesso</p>
+    </div>
+
+    <div class="body">
+      <div class="status-row">
+        <div class="dot"></div>
+        <span>Pedido em processamento</span>
+      </div>
+
+      <div class="order-box">
+        <label>Número do pedido</label>
+        <span id="order-id">—</span>
+      </div>
+
+      <div class="badge-row">
+        <span class="badge">🚚 Frete Grátis</span>
+        <span class="badge">✅ Pagamento Aprovado</span>
+        <span class="badge">📦 Envio em 24h</span>
+      </div>
+
+      <a href="/" class="back-btn">Continuar comprando</a>
+
+      <p class="footer-note">Você receberá os detalhes por e-mail em breve.</p>
+    </div>
+  </div>
+
+  <script>
+    var params = new URLSearchParams(window.location.search);
+    var oid = params.get("orderId");
+    document.getElementById("order-id").textContent = oid || "—";
+  </script>
+
+  <script
+    src="https://cdn.utmify.com.br/scripts/utms/latest.js"
+    data-utmify-prevent-xcod-sck
+    data-utmify-prevent-subids
+    async defer
+  ></script>
+</body>
+</html>
