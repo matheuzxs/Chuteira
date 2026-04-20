@@ -7,9 +7,73 @@ const PORT = process.env.PORT || 3000;
 
 const PARADISE_BASE = "https://multi.paradisepags.com/api/v1";
 const PARADISE_KEY = process.env.PARADISE_API_KEY;
+const UTMIFY_API_TOKEN = process.env.UTMIFY_API_TOKEN || "";
+const UTMIFY_API_URL = "https://api.utmify.com.br/api-credentials/orders";
 
-// transactionId → { paradiseId, paidSent }
+// transactionId → { paradiseId, cents, name, email, phone, document, tracking, ip, createdAt, paidSent }
 const pixMap = new Map();
+
+async function sendUtmifyEvent(orderInfo, status) {
+  if (!UTMIFY_API_TOKEN) return;
+  const now = new Date().toISOString().replace("T", " ").substring(0, 19);
+  const utms = orderInfo.tracking || {};
+
+  const payload = {
+    orderId: String(orderInfo.transactionId),
+    platform: "OwnPlatform",
+    paymentMethod: "pix",
+    status: status,
+    createdAt: orderInfo.createdAt || now,
+    approvedDate: status === "paid" ? now : null,
+    refundedAt: null,
+    customer: {
+      name: orderInfo.name || "Cliente",
+      email: orderInfo.email || "",
+      phone: (orderInfo.phone || "").replace(/\D/g, "") || null,
+      document: (orderInfo.document || "").replace(/\D/g, "") || null,
+      country: "BR",
+      ip: orderInfo.ip || null,
+    },
+    products: [
+      {
+        id: "chuteira-kintsugi",
+        name: "Chuteira Futsal Pro 5 Bump Kintsugi Unissex",
+        planId: null,
+        planName: null,
+        quantity: 1,
+        priceInCents: orderInfo.cents || 0,
+      },
+    ],
+    trackingParameters: {
+      src: utms.src || null,
+      sck: utms.sck || null,
+      utm_source: utms.utm_source || null,
+      utm_campaign: utms.utm_campaign || null,
+      utm_medium: utms.utm_medium || null,
+      utm_content: utms.utm_content || null,
+      utm_term: utms.utm_term || null,
+    },
+    commission: {
+      totalPriceInCents: orderInfo.cents || 0,
+      gatewayFeeInCents: 0,
+      userCommissionInCents: orderInfo.cents || 0,
+      currency: "BRL",
+    },
+    isTest: false,
+  };
+
+  try {
+    const res = await fetch(UTMIFY_API_URL, {
+      method: "POST",
+      headers: { "x-api-token": UTMIFY_API_TOKEN, "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const text = await res.text();
+    console.log(`[Utmify] ${status} → ${res.status} ${text.slice(0, 200)}`);
+  } catch (e) {
+    console.error(`[Utmify] ${status} erro:`, e.message);
+  }
+}
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname), { index: "index.html", etag: false, maxAge: 0 }));
@@ -24,7 +88,6 @@ app.post("/api/create-pix", async (req, res) => {
     } = req.body;
 
     const cents = totalCents || Math.round((amount || 0) * 100);
-
     const phone = (customer?.phone || "").replace(/\D/g, "");
     const doc = (payerDocument || "").replace(/\D/g, "");
 
@@ -73,9 +136,24 @@ app.post("/api/create-pix", async (req, res) => {
       });
     }
 
-    pixMap.set(transactionId, { paradiseId: data.transaction_id, paidSent: false });
+    const orderInfo = {
+      transactionId,
+      paradiseId: data.transaction_id,
+      cents,
+      name: payerName || customer?.name || "",
+      email: customer?.email || "",
+      phone,
+      document: doc,
+      tracking: tracking || {},
+      ip: req.headers["x-forwarded-for"]?.split(",")[0] || req.socket?.remoteAddress || "",
+      createdAt: new Date().toISOString().replace("T", " ").substring(0, 19),
+      paidSent: false,
+    };
+    pixMap.set(transactionId, orderInfo);
 
     console.log(`[PIX] Criado | ref=${transactionId} paradiseId=${data.transaction_id} R$${(cents / 100).toFixed(2)}`);
+
+    sendUtmifyEvent(orderInfo, "waiting_payment");
 
     res.json({
       copyPaste: data.qr_code || "",
@@ -95,8 +173,8 @@ app.get("/api/create-pix", async (req, res) => {
     const txId = req.query.id;
     if (!txId) return res.status(400).json({ error: "id obrigatório" });
 
-    const info = pixMap.get(txId);
-    if (!info) return res.json({ status: "pending" });
+    const orderInfo = pixMap.get(txId);
+    if (!orderInfo) return res.json({ status: "pending" });
 
     const apiRes = await fetch(
       `${PARADISE_BASE}/query.php?action=list_transactions&external_id=${encodeURIComponent(txId)}`,
@@ -107,12 +185,12 @@ app.get("/api/create-pix", async (req, res) => {
     const tx = Array.isArray(data) ? data[0] : null;
     const rawStatus = tx?.status || "pending";
 
-    // Paradise usa "approved" em vez de "paid"
     const status = rawStatus === "approved" ? "paid" : rawStatus;
 
-    if (status === "paid" && !info.paidSent) {
-      info.paidSent = true;
-      console.log(`[PIX] Pago! ref=${txId} paradiseId=${info.paradiseId}`);
+    if (status === "paid" && !orderInfo.paidSent) {
+      orderInfo.paidSent = true;
+      console.log(`[PIX] Pago! ref=${txId} paradiseId=${orderInfo.paradiseId}`);
+      sendUtmifyEvent(orderInfo, "paid");
     }
 
     res.json({ status });
@@ -124,5 +202,6 @@ app.get("/api/create-pix", async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`\n  ✓ Servidor rodando em http://localhost:${PORT}`);
-  console.log(`  ✓ Paradise API Key: ${PARADISE_KEY ? PARADISE_KEY.slice(0, 12) + "..." : "⚠ NÃO CONFIGURADA"}\n`);
+  console.log(`  ✓ Paradise API Key: ${PARADISE_KEY ? PARADISE_KEY.slice(0, 12) + "..." : "⚠ NÃO CONFIGURADA"}`);
+  console.log(`  ✓ Utmify Token: ${UTMIFY_API_TOKEN ? UTMIFY_API_TOKEN.slice(0, 12) + "..." : "⚠ NÃO CONFIGURADO"}\n`);
 });
