@@ -243,5 +243,131 @@
     })();
     </script>
 
+    <script>
+    (function () {
+      var vid = localStorage.getItem("_vid");
+      if (!vid) { vid = "v-" + Math.random().toString(36).slice(2) + Date.now(); localStorage.setItem("_vid", vid); }
+      var startTime = Date.now();
+      var fired = {};
+
+      function ev(name, extra) {
+        if (fired[name]) return;
+        fired[name] = true;
+        var d = { event: name, page: location.pathname || "index", visitorId: vid, timeOnSite: Math.round((Date.now() - startTime) / 1000) };
+        if (extra) for (var k in extra) d[k] = extra[k];
+        try { navigator.sendBeacon("/api/event", new Blob([JSON.stringify(d)], { type: "application/json" })); } catch (e) {}
+      }
+
+      function evRepeat(name, extra) {
+        var d = { event: name, page: location.pathname || "index", visitorId: vid, timeOnSite: Math.round((Date.now() - startTime) / 1000) };
+        if (extra) for (var k in extra) d[k] = extra[k];
+        try { navigator.sendBeacon("/api/event", new Blob([JSON.stringify(d)], { type: "application/json" })); } catch (e) {}
+      }
+
+      // 1) Entrou no site
+      var waitVis = setInterval(function () {
+        if (document.documentElement.style.visibility !== "hidden") {
+          clearInterval(waitVis);
+          ev("page_view");
+        }
+      }, 200);
+
+      // 2) Scroll milestones
+      var scrollSent = {};
+      window.addEventListener("scroll", function () {
+        var pct = Math.round((window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100);
+        [25, 50, 75, 100].forEach(function (m) {
+          if (pct >= m && !scrollSent[m]) {
+            scrollSent[m] = true;
+            evRepeat("scroll", { percent: m });
+          }
+        });
+      }, { passive: true });
+
+      // 3) Clicou em tamanho
+      document.addEventListener("click", function (e) {
+        var btn = e.target.closest("button");
+        if (!btn) return;
+        var txt = (btn.textContent || "").trim();
+        if (/^\d{2}$/.test(txt)) {
+          evRepeat("select_size", { size: txt });
+        }
+        var lower = txt.toLowerCase();
+        if (/adicionar|comprar|carrinho/.test(lower)) {
+          ev("click_buy");
+        }
+      }, true);
+
+      // 4) Checkout abriu
+      var obs = new MutationObserver(function () {
+        if (document.querySelector("input[type='email'], input[inputmode='email']")) {
+          ev("checkout_open");
+        }
+      });
+      if (document.body) obs.observe(document.body, { childList: true, subtree: true });
+
+      // 5) Preencheu campos do form
+      var fieldsSent = {};
+      document.addEventListener("focusout", function (e) {
+        var el = e.target;
+        if (el.tagName !== "INPUT" || !el.value) return;
+        var label = (el.placeholder || el.name || el.id || "").toLowerCase();
+        var field = null;
+        if (/nome|name/.test(label)) field = "nome";
+        else if (/cpf|document/.test(label)) field = "cpf";
+        else if (/mail/.test(label)) field = "email";
+        else if (/fone|phone|whats|celular/.test(label)) field = "telefone";
+        else if (/cep|zip/.test(label)) field = "cep";
+        if (field && !fieldsSent[field]) {
+          fieldsSent[field] = true;
+          evRepeat("fill_field", { field: field });
+        }
+      }, true);
+
+      // 6) Tela do PIX / copiou código — interceptar fetch
+      var _fetch = window.fetch;
+      var origFetch = window.fetch;
+      if (typeof window._trackFetchSet === "undefined") {
+        window._trackFetchSet = true;
+        window.fetch = function () {
+          var url = arguments[0];
+          var opts = arguments[1] || {};
+          if (typeof url === "string" && url.indexOf("/api/create-pix") !== -1 && (opts.method || "").toUpperCase() === "POST") {
+            var result = origFetch.apply(this, arguments);
+            result.then(function (resp) {
+              if (resp.ok) ev("pix_screen");
+            }).catch(function () {});
+            return result;
+          }
+          return origFetch.apply(this, arguments);
+        };
+      }
+
+      // 7) Copiou código PIX (detecta clipboard)
+      document.addEventListener("click", function (e) {
+        var btn = e.target.closest("button");
+        if (!btn) return;
+        var txt = (btn.textContent || "").toLowerCase();
+        if (/copiar|copy|copi/.test(txt)) {
+          ev("pix_copy");
+        }
+      }, true);
+
+      // 8) Heartbeat
+      setInterval(function () {
+        try {
+          navigator.sendBeacon("/api/heartbeat", new Blob([JSON.stringify({
+            visitorId: vid, page: location.pathname, timeOnSite: Math.round((Date.now() - startTime) / 1000)
+          })], { type: "application/json" }));
+        } catch (e) {}
+      }, 30000);
+
+      // 9) Saiu do site
+      window.addEventListener("beforeunload", function () {
+        fired["left"] = false;
+        evRepeat("left", { totalTime: Math.round((Date.now() - startTime) / 1000) });
+      });
+    })();
+    </script>
   </body>
 </html>

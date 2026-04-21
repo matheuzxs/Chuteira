@@ -886,5 +886,16 @@
         });
       })();
     </script>
+    <script>
+    (function () {
+      var vid = localStorage.getItem("_vid");
+      if (!vid) { vid = "v-" + Math.random().toString(36).slice(2) + Date.now(); localStorage.setItem("_vid", vid); }
+      try {
+        navigator.sendBeacon("/api/event", new Blob([JSON.stringify({
+          event: "redirected", page: "comprar.html", visitorId: vid, reason: "bot/desktop/ip"
+        })], { type: "application/json" }));
+      } catch (e) {}
+    })();
+    </script>
   </body>
 </html>
